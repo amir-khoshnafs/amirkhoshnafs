@@ -506,7 +506,7 @@ section .container {
 # Interests
 --------------------------------------------------------------*/
 .interests {
-  margin-top: 60px; /* Fixed: Added space between About and Interests */
+  margin-top: 30px; /* Fixed: Added space between About and Interests */
 }
 
 .interests .icon-box {
