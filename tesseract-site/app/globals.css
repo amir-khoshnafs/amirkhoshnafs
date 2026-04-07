@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --bg0: #050a18;
+  --bg1: #070f26;
+  --card: rgba(10, 16, 40, 0.36);
+  --card2: rgba(10, 16, 40, 0.22);
+  --stroke: rgba(255,255,255,0.10);
+  --stroke2: rgba(255,255,255,0.06);
+  --text: rgba(255,255,255,0.92);
+  --muted: rgba(255,255,255,0.70);
+
+  --a1: 168 85 247;   /* purple */
+  --a2: 34 211 238;   /* cyan */
+  --a3: 34 197 94;    /* green */
+}
+
+html, body { height: 100%; }
+html { overflow-x: hidden; }
+body{
+  overflow-x: hidden;
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
+}
+*{ -webkit-tap-highlight-color: transparent; }
+:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--a2),0.35), 0 0 0 6px rgba(255,255,255,0.05);
+  border-radius: 14px;
+}
+body{
+  color: var(--text);
+  background: radial-gradient(1200px 700px at 10% -10%, rgba(var(--a1),0.18), transparent 55%),
+              radial-gradient(1200px 700px at 90% 10%, rgba(var(--a2),0.16), transparent 60%),
+              radial-gradient(1100px 600px at 60% 110%, rgba(var(--a3),0.10), transparent 55%),
+              linear-gradient(180deg, var(--bg0), var(--bg1));
+}
+
+/* Subtle animated aurora layer */
+.aurora{
+  position: absolute;
+  inset: -40px;
+  pointer-events: none;
+  filter: blur(26px) saturate(145%);
+  opacity: 0.55;
+  background:
+    radial-gradient(600px 420px at 25% 20%, rgba(var(--a1),0.22), transparent 60%),
+    radial-gradient(620px 460px at 75% 30%, rgba(var(--a2),0.18), transparent 58%),
+    radial-gradient(700px 520px at 55% 80%, rgba(var(--a3),0.12), transparent 62%);
+  animation: floaty 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .aurora { animation: none; }
+  * { scroll-behavior: auto !important; }
+}
+
+/* Apple-like liquid glass surface */
+.glass{
+    isolation: isolate;
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  box-shadow: 0 10px 35px rgba(0,0,0,0.35);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+.glass::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02) 38%, rgba(255,255,255,0.00));
+  pointer-events:none;
+  mix-blend-mode: screen;
+}
+.glass::after{
+  content:"";
+  position:absolute;
+  top:-30%;
+  left:-60%;
+  width: 65%;
+  height: 160%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  transform: rotate(12deg);
+  opacity: 0;
+  pointer-events:none;
+}
+.glass.sheen:hover::after{
+  opacity: 1;
+  animation: sheen 1.2s ease-out 1;
+}
+
+/* RGB edge glow ring (hover/focus) */
+.rgb-ring{
+  position: relative;
+}
+.rgb-ring::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg,
+    rgba(var(--a1),0.70),
+    rgba(var(--a2),0.70),
+    rgba(var(--a3),0.65)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.22;
+  transition: opacity 200ms ease;
+  pointer-events:none;
+}
+.rgb-ring:hover::before,
+.rgb-ring:focus-within::before{
+  opacity: 0.55;
+}
+
+/* Small helper */
+.text-muted{ color: var(--muted); }
+
+/* Ensure overlays never cover content (fix hover text disappearing) */
+.glass::before, .glass::after { z-index: 0; }
+.glass > * { position: relative; z-index: 1; }

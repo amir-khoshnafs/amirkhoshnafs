@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olist E-commerce Analytics Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- D3.js for Map -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+
+    <!-- Chart.js for Charts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --dark-bg: #0d1117;
+            --light-text: #c9d1d9;
+            --accent-blue: #58a6ff;
+            --border-color: rgba(48, 54, 61, 0.5);
+            --glass-bg: rgba(22, 27, 34, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+            padding: 2rem;
+        }
+        
+        /* Glassmorphism effect card */
+        .glass-effect {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-effect:hover {
+            border-color: rgba(88, 166, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(88, 166, 255, 0.1);
+        }
+        
+        /* Styles for the D3-generated map */
+        .state {
+            stroke: #2d3748;
+            stroke-width: 1px;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .state:hover {
+            stroke: var(--accent-blue);
+            stroke-width: 2px;
+            opacity: 0.8;
+        }
+        
+        /* Tooltip for map */
+        #tooltip {
+            position: absolute;
+            background-color: rgb(13, 17, 23);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid var(--border-color);
+            z-index: 10;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+
+        /* Responsive table styling */
+        .responsive-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .responsive-table th, .responsive-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .responsive-table th {
+            background-color: rgba(255,255,255,0.05);
+            font-weight: 600;
+        }
+        .responsive-table tr:hover {
+            background-color: rgba(88, 166, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-300">
+
+    <!-- Tooltip element -->
+    <div id="tooltip"></div>
+
+    <div class="max-w-screen-2xl mx-auto space-y-8">
+
+        <!-- Header -->
+        <header class="text-center py-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-2">
+                Olist E-commerce <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Analytics</span>
+            </h1>
+            <p class="text-lg text-gray-400">Comprehensive Business Intelligence Dashboard</p>
+        </header>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="glass-effect p-6">
+                <p class="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Revenue</p>
+                <p class="text-4xl font-bold text-white mt-2">R$ 12.58M</p>
+            </div>
+            <div class="glass-effect p-6">
+                <p class="text-sm font-medium text-gray-400 uppercase tracking-wider">Product Categories</p>
+                <p class="text-4xl font-bold text-white mt-2">10</p>
+            </div>
+            <div class="glass-effect p-6">
+                <p class="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Orders</p>
+                <p class="text-4xl font-bold text-white mt-2">99.8K</p>
+            </div>
+            <div class="glass-effect p-6">
+                <p class="text-sm font-medium text-gray-400 uppercase tracking-wider">Avg Delivery</p>
+                <p class="text-4xl font-bold text-white mt-2">-11.2 days</p>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div class="glass-effect p-6 lg:col-span-2 flex flex-col">
+                <h3 class="text-xl font-bold text-white text-center mb-4">Revenue by Category</h3>
+                <div class="relative h-80">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-effect p-6 lg:col-span-3 flex flex-col">
+                <h3 class="text-xl font-bold text-white text-center mb-4">Monthly Sales Trend</h3>
+                <div class="relative h-80">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map and Performance Section -->
+        <div class="glass-effect p-6">
+            <h3 class="text-xl font-bold text-white text-center mb-6">Delivery Performance by State</h3>
+             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div id="brazil-map-container" class="lg:col-span-2 min-h-[400px] md:min-h-[500px]">
+                    <!-- D3 map will be rendered here -->
+                </div>
+                <div class="max-h-[500px] overflow-y-auto">
+                    <h4 class="font-bold text-lg text-white mb-4">State Rankings</h4>
+                    <div id="performance-list" class="space-y-2">
+                        <!-- Performance list will be generated by script -->
+                    </div>
+                </div>
+            </div>
+            <div id="legend-container" class="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-6">
+                <!-- Legend will be generated by script -->
+            </div>
+        </div>
+
+        <!-- Tables Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="glass-effect p-6">
+                <h3 class="text-xl font-bold text-white text-center mb-4">Top Customers by Revenue</h3>
+                <div class="overflow-x-auto">
+                    <table class="responsive-table">
+                        <thead>
+                            <tr><th>Rank</th><th>Customer ID</th><th>Total Spent</th></tr>
+                        </thead>
+                        <tbody id="topCustomers"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="glass-effect p-6">
+                <h3 class="text-xl font-bold text-white text-center mb-4">Seller Performance Analysis</h3>
+                <div class="overflow-x-auto">
+                    <table class="responsive-table">
+                        <thead>
+                            <tr><th>Seller ID</th><th>Avg Rating</th><th>Performance</th></tr>
+                        </thead>
+                        <tbody id="sellerPerformance"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center py-8 text-gray-500">
+            <p>© 2025 Amir Khoshnafs | Data Science Portfolio Project</p>
+        </footer>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // --- GLOBAL CHART & MAP CONFIG ---
+            const THEME = {
+                font: 'Inter',
+                textColor: '#c9d1d9',
+                gridColor: 'rgba(201, 209, 217, 0.1)',
+                accentColors: ['#58a6ff', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#6366f1', '#84cc16']
+            };
+
+            // Set Chart.js defaults
+            Chart.defaults.font.family = THEME.font;
+            Chart.defaults.color = THEME.textColor;
+            Chart.defaults.plugins.legend.position = 'bottom';
+            Chart.defaults.plugins.legend.labels.padding = 20;
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+            // --- DATA DEFINITIONS ---
+
+            // Delivery performance data by state
+            const deliveryData = { 'SP': -10.13, 'RJ': -10.90, 'MG': -12.29, 'BA': -9.93, 'RS': -12.98, 'PR': -12.36, 'SC': -10.61, 'GO': -11.27, 'MT': -13.43, 'CE': -9.95, 'PE': -12.40, 'AM': -18.61, 'PA': -13.19, 'MA': -8.74, 'DF': -11.12, 'ES': -9.62, 'AL': -7.95, 'SE': -9.17, 'PB': -12.37, 'RN': -12.76, 'PI': -10.47, 'TO': -11.26, 'MS': -10.17, 'RO': -19.13, 'AC': -19.76, 'RR': -16.41, 'AP': -18.73 };
+
+            // Performance thresholds and colors
+            const performanceTiers = [
+                { label: 'Excellent', threshold: -16, color: '#10b981' }, // Green
+                { label: 'Good', threshold: -13, color: '#34d399' },
+                { label: 'Average', threshold: -11, color: '#f59e0b' }, // Amber
+                { label: 'Needs Focus', threshold: -9, color: '#f97316' }, // Orange
+                { label: 'Priority', threshold: -Infinity, color: '#ef4444' } // Red
+            ];
+
+            // Revenue by category data
+            const categoryData = [['Health & Beauty', 1441248.07], ['Watches & Gifts', 1305541.61], ['Bed Bath & Table', 1241681.72], ['Sports & Leisure', 1156656.48], ['Computers & Accessories', 1059272.40], ['Furniture & Decor', 902511.79], ['Home Utilities', 778397.77], ['Cool Stuff', 719329.95], ['Automotive', 685384.32], ['Garden Tools', 584219.21]];
+            
+            // Monthly sales data
+            const monthlyData = [['Jan 2017', 748], ['Feb 2017', 1641], ['Mar 2017', 2546], ['Apr 2017', 2303], ['May 2017', 3545], ['Jun 2017', 3135], ['Jul 2017', 3872], ['Aug 2017', 4193], ['Sep 2017', 4149], ['Oct 2017', 4478], ['Nov 2017', 7288], ['Dec 2017', 5513], ['Jan 2018', 7069], ['Feb 2018', 6556], ['Mar 2018', 7003], ['Apr 2018', 6798], ['May 2018', 6749], ['Jun 2018', 6096], ['Jul 2018', 6156], ['Aug 2018', 6351]];
+
+            // Top customers data
+            const topCustomers = [['0a0a92112bd4c708ca5fde585afaa872', 13664.08], ['da122df9eeddfedc1dc1f5349a1a690c', 7571.63], ['763c8b1c9c68a0229c42c9fc6f662b93', 7274.88], ['dc4802a71eae9be1dd28f5d788ceb526', 6929.31], ['459bef486812aa25204be022145caa62', 6922.21]];
+            
+            // Seller performance data
+            const sellerData = [['4342d4b2ba6b161468c63a7e7cfce593', 1.26], ['b37c4c02bda3161a7546a4e6d222d5b2', 1.40], ['8bd0e3abda539b9479c4b44a691be1ec', 1.69], ['b1b3948701c5c72445495bd161b83a4c', 1.72], ['6ee85be3693ed79a8e80718743d80655', 1.92]];
+
+
+            // --- HELPER FUNCTIONS ---
+
+            // Function to get performance tier based on delay
+            function getPerformanceTier(delay) {
+                for (const tier of performanceTiers) {
+                    if (delay <= tier.threshold) {
+                        return tier;
+                    }
+                }
+                return performanceTiers[performanceTiers.length - 1];
+            }
+
+
+            // --- MAP RENDERING (D3.JS) ---
+            
+            function renderBrazilMap() {
+                const container = d3.select("#brazil-map-container");
+                if (container.empty()) return;
+
+                const width = container.node().getBoundingClientRect().width;
+                const height = width * 0.9; // Maintain aspect ratio
+
+                const svg = container.append("svg")
+                    .attr("width", "100%")
+                    .attr("height", "100%")
+                    .attr("viewBox", `0 0 ${width} ${height}`)
+                    .style("max-height", "500px");
+
+                const tooltip = d3.select("#tooltip");
+
+                // Load Brazil GeoJSON data
+                d3.json("https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson").then(geojson => {
+                    const projection = d3.geoMercator().fitSize([width, height], geojson);
+                    const path = d3.geoPath().projection(projection);
+
+                    svg.selectAll("path")
+                        .data(geojson.features)
+                        .enter().append("path")
+                        .attr("class", "state")
+                        .attr("d", path)
+                        .attr("fill", d => {
+                            const stateCode = d.properties.sigla;
+                            const delay = deliveryData[stateCode];
+                            return delay ? getPerformanceTier(delay).color : '#374151'; // Default gray
+                        })
+                        .on("mouseover", function(event, d) {
+                            d3.select(this).raise();
+                            tooltip.style("opacity", 1);
+                        })
+                        .on("mousemove", function(event, d) {
+                            const stateCode = d.properties.sigla;
+                            const delay = deliveryData[stateCode];
+                            const performance = delay ? getPerformanceTier(delay).label : 'No Data';
+                            
+                            tooltip.html(`
+                                <div class="font-bold text-base">${d.properties.nome} (${stateCode})</div>
+                                <div>Delivery: <span class="font-semibold">${delay ? delay.toFixed(2) + ' days' : 'N/A'}</span></div>
+                                <div>Performance: <span class="font-semibold">${performance}</span></div>
+                            `)
+                            .style("left", (event.pageX + 15) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseleave", function(event, d) {
+                            tooltip.style("opacity", 0);
+                        });
+                });
+            }
+
+
+            // --- CHART RENDERING (CHART.JS) ---
+            
+            // Category Doughnut Chart
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: categoryData.map(item => item[0]),
+                    datasets: [{
+                        data: categoryData.map(item => item[1]),
+                        backgroundColor: THEME.accentColors,
+                        borderColor: 'var(--dark-bg)',
+                        borderWidth: 3,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                }
+            });
+
+            // Monthly Sales Line Chart
+            new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(item => item[0]),
+                    datasets: [{
+                        label: 'Orders',
+                        data: monthlyData.map(item => item[1]),
+                        borderColor: THEME.accentColors[0],
+                        backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: THEME.accentColors[0],
+                        pointBorderColor: 'var(--dark-bg)',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: THEME.gridColor }
+                        },
+                        x: { 
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            
+            // --- DYNAMIC CONTENT POPULATION ---
+
+            // Populate Top Customers Table
+            const customerTableBody = document.getElementById('topCustomers');
+            topCustomers.forEach((customer, index) => {
+                customerTableBody.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${customer[0].substring(0, 12)}...</td>
+                        <td class="font-semibold text-white">R$ ${customer[1].toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    </tr>`;
+            });
+
+            // Populate Seller Performance Table
+            const sellerTableBody = document.getElementById('sellerPerformance');
+            sellerData.forEach(seller => {
+                const performance = seller[1] < 2 ? 'Needs Improvement' : seller[1] < 3 ? 'Average' : 'Good';
+                const colorClass = seller[1] < 2 ? 'text-red-400' : seller[1] < 3 ? 'text-amber-400' : 'text-green-400';
+                sellerTableBody.innerHTML += `
+                    <tr>
+                        <td>${seller[0].substring(0, 12)}...</td>
+                        <td class="font-semibold text-white">${seller[1].toFixed(2)}</td>
+                        <td class="font-bold ${colorClass}">${performance}</td>
+                    </tr>`;
+            });
+
+            // Populate Performance List and Legend
+            const performanceList = document.getElementById('performance-list');
+            const legendContainer = document.getElementById('legend-container');
+            const sortedStates = Object.entries(deliveryData).sort((a, b) => a[1] - b[1]);
+
+            sortedStates.forEach(([state, delay], index) => {
+                const tier = getPerformanceTier(delay);
+                performanceList.innerHTML += `
+                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-white/5">
+                        <div class="flex items-center">
+                             <span class="font-mono text-sm text-gray-400 w-8">${index + 1}.</span>
+                             <span class="w-4 h-4 rounded-full mr-3" style="background-color: ${tier.color};"></span>
+                             <span class="font-semibold text-white">${state}</span>
+                        </div>
+                        <span class="font-mono text-sm">${delay.toFixed(2)}</span>
+                    </div>`;
+            });
+
+            performanceTiers.forEach(tier => {
+                legendContainer.innerHTML += `
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded" style="background-color: ${tier.color};"></div>
+                        <span class="text-sm">${tier.label}</span>
+                    </div>`;
+            });
+
+            // --- INITIALIZATION ---
+            renderBrazilMap();
+            
+            // Re-render map on window resize to ensure it fits the container
+            window.addEventListener('resize', () => {
+                document.getElementById('brazil-map-container').innerHTML = '';
+                renderBrazilMap();
+            });
+        });
+    </script>
+</body>
+</html>
